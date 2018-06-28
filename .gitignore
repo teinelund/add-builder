@@ -15,4 +15,4 @@ mvnw.cmd
 *.iml
 *.ipr
 
-
+dependency-reduced-pom.xml
