@@ -1,5 +1,6 @@
 package org.teinelund.application.commandline.addbuilder.commandline;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 
 public class Arguments {
@@ -13,6 +14,8 @@ public class Arguments {
     @Parameter(names = { "-h", "--help" }, description = "Show this help page.", help = true, order = 3)
     private boolean help = false;
 
+    private JCommander jCommander;
+
     public String getFilename() {
         return filename;
     }
@@ -23,5 +26,13 @@ public class Arguments {
 
     public boolean isHelp() {
         return help;
+    }
+
+    void setJCommander(JCommander jCommander) {
+        this.jCommander = jCommander;
+    }
+
+    public void printHelp() {
+        this.jCommander.usage();
     }
 }
