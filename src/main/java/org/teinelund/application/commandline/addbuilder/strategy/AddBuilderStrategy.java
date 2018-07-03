@@ -32,7 +32,12 @@ public class AddBuilderStrategy implements Strategy {
         if (verifyPath(path)) {
             BufferedReader reader = Files.newBufferedReader(path);
             ClassInfo classInfo = fetchFieldMembersFromJavaSourceFile(reader);
-            printBuilder(classInfo);
+            if (classInfo.isValid()) {
+                printBuilder(classInfo);
+            }
+            else {
+                printError(classInfo);
+            }
         }
     }
 
@@ -60,11 +65,22 @@ public class AddBuilderStrategy implements Strategy {
         CompilationUnit compilationUnit = JavaParser.parse(reader);
         NodeList<TypeDeclaration<?>> types = compilationUnit.getTypes();
         ClassInfo classInfo = null;
+        boolean oneClassFound = false;
+        boolean twoOrMoreClassesFound = false;
+        boolean enumOrInterfaceFound = false;
         for (TypeDeclaration<?> typeDeclaration : types) {
             if (typeDeclaration instanceof ClassOrInterfaceDeclaration) {
                 ClassOrInterfaceDeclaration classOrInterfaceDecl = (ClassOrInterfaceDeclaration) typeDeclaration;
                 if (classOrInterfaceDecl.isInterface()) {
+                    enumOrInterfaceFound = true;
                     continue;
+                }
+                if (oneClassFound) {
+                    twoOrMoreClassesFound = true;
+                    continue;
+                }
+                else {
+                    oneClassFound = true;
                 }
                 String name = classOrInterfaceDecl.getNameAsString();
                 List<FieldDeclaration> fields = classOrInterfaceDecl.getFields();
@@ -75,10 +91,19 @@ public class AddBuilderStrategy implements Strategy {
                     }
                 }
                 if (!list.isEmpty()) {
-                    classInfo = new ClassInfo(name, list);
-                    break;
+                    classInfo = ClassInfo.validClassInfo(name, list);
                 }
             }
+            else {
+                enumOrInterfaceFound = true;
+                continue;
+            }
+        }
+        if (twoOrMoreClassesFound) {
+            classInfo = ClassInfo.twoOrMoreClassesFound();
+        }
+        else if (enumOrInterfaceFound && !oneClassFound) {
+            classInfo = ClassInfo.interfaceOrEnumFound();
         }
         return classInfo;
     }
@@ -124,16 +149,55 @@ public class AddBuilderStrategy implements Strategy {
         System.out.println(sb.toString());
     }
 
+    void printError(ClassInfo classInfo) {
+        if (classInfo.isIngterfaceOrEnumError()) {
+            System.out.println("No class found. Type --help to diplay the help page.");
+        }
+        else if (classInfo.isTwoOrMoreStateError()) {
+            System.out.println("Two or more classes found. Valid is one class per java source file. Type --help to diplay the help page.");
+        }
+    }
+
 
 }
 
 class ClassInfo {
     private String name;
     private List<FieldMember> members;
+    private ClassInfoErrorState state;
 
-    public ClassInfo(String name, List<FieldMember> members) {
+    private ClassInfo(String name, List<FieldMember> members) {
         this.name = name;
         this.members = members;
+        this.state = ClassInfoErrorState.VALID_STATE;
+    }
+
+    private ClassInfo(ClassInfoErrorState state) {
+        this.state = state;
+    }
+
+    public static ClassInfo validClassInfo(String name, List<FieldMember> members) {
+        return new ClassInfo(name, members);
+    }
+
+    public static ClassInfo twoOrMoreClassesFound() {
+        return new ClassInfo(ClassInfoErrorState.TWO_OR_MORE_CLASSES_STATE);
+    }
+
+    public static ClassInfo interfaceOrEnumFound() {
+        return new ClassInfo(ClassInfoErrorState.INTERFACE_OR_ENUM_STATE);
+    }
+
+    boolean isValid() {
+        return this.state == ClassInfoErrorState.VALID_STATE;
+    }
+
+    boolean isTwoOrMoreStateError() {
+        return this.state == ClassInfoErrorState.TWO_OR_MORE_CLASSES_STATE;
+    }
+
+    boolean isIngterfaceOrEnumError() {
+        return this.state == ClassInfoErrorState.INTERFACE_OR_ENUM_STATE;
     }
 
     public String getName() {
@@ -144,6 +208,8 @@ class ClassInfo {
         return members;
     }
 }
+
+enum ClassInfoErrorState {VALID_STATE, TWO_OR_MORE_CLASSES_STATE, INTERFACE_OR_ENUM_STATE};
 
 class FieldMember {
     private String type;
