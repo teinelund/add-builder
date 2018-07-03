@@ -6,6 +6,8 @@ import org.teinelund.application.commandline.addbuilder.strategy.HelpStrategy;
 import org.teinelund.application.commandline.addbuilder.strategy.Strategy;
 import org.teinelund.application.commandline.addbuilder.strategy.VersionStrategy;
 
+import java.io.IOException;
+
 public class Controller {
     private Arguments arguments;
 
@@ -13,7 +15,7 @@ public class Controller {
         this.arguments = arguments;
     }
 
-    public void selectCommandStrategy() {
+    public void selectCommandStrategy() throws IOException {
         Strategy strategy = null;
         if (arguments.isHelp()) {
             strategy = new HelpStrategy(this.arguments);

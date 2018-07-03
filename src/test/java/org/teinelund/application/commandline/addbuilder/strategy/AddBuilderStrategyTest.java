@@ -6,10 +6,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
+import java.io.Reader;
+import java.io.StringReader;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -37,45 +39,6 @@ class AddBuilderStrategyTest {
         }
     }
 
-    /*
-    @BeforeEach
-    void initTest() throws IOException {
-        if (!Files.exists(projectPath)) {
-            Files.createDirectories(projectPath);
-            Files.createFile(pomXmlPath);
-            Files.createFile(javaFilePath);
-        }
-    }
-    */
-
-    /*
-    @AfterEach
-    void cleanUpTest() throws IOException {
-        if (Files.exists(pomXmlPath)) {
-            Files.delete(pomXmlPath);
-        }
-    }
-    */
-
-    /**
-     * Help method to delete a directory recursevly. Apache IO's FileUtils.delete(...) does not work with Google
-     * jimfs.
-     *
-     * @param path
-     * @throws IOException
-     */
-    public static void deleteDirectory(Path path) throws IOException {
-        DirectoryStream<Path> stream = Files.newDirectoryStream(path);
-        for (Path fileOrDirectoryPath : stream) {
-            if (Files.isRegularFile(fileOrDirectoryPath)) {
-                Files.delete(fileOrDirectoryPath);
-            }
-            if (Files.isDirectory(fileOrDirectoryPath)) {
-                deleteDirectory(fileOrDirectoryPath);
-            }
-        }
-        Files.delete(path);
-    }
 
     @Test
     public void verifyPathWherePathDoesNotExist() throws IOException {
@@ -110,7 +73,41 @@ class AddBuilderStrategyTest {
         // Test
         boolean result = sut.verifyPath(javaFilePath);
         // Verify
-        assertThat(result).isFalse();
+        assertThat(result).isTrue();
+    }
+
+
+    @Test
+    public void fetchFieldMembersFromJavaSourceFile() {
+        // Initialize
+        Reader reader = createJavaSourceFile();
+        // Test
+        ClassInfo result = sut.fetchFieldMembersFromJavaSourceFile(reader);
+        // Verify
+        assertThat(result.getMembers().size()).isEqualTo(3);
+        assertThat(result.getMembers().get(0).getType()).isEqualTo("String");
+        assertThat(result.getMembers().get(0).getName()).isEqualTo("name");
+        assertThat(result.getMembers().get(2).getType()).isEqualTo("List<Collegue>");
+        assertThat(result.getMembers().get(2).getName()).isEqualTo("collegues");
+    }
+
+    Reader createJavaSourceFile() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("package org.teinelund;"); sb.append(java.lang.System.lineSeparator());
+        sb.append(""); sb.append(java.lang.System.lineSeparator());
+        sb.append("import java.io.IOException;"); sb.append(java.lang.System.lineSeparator());
+        sb.append(""); sb.append(java.lang.System.lineSeparator());
+        sb.append("public class Company {"); sb.append(java.lang.System.lineSeparator());
+        sb.append(""); sb.append(java.lang.System.lineSeparator());
+        sb.append("   private String name;"); sb.append(java.lang.System.lineSeparator());
+        sb.append("   private Address address;"); sb.append(java.lang.System.lineSeparator());
+        sb.append("   private List<Collegue> collegues;"); sb.append(java.lang.System.lineSeparator());
+        sb.append(""); sb.append(java.lang.System.lineSeparator());
+        sb.append("   public void setName(String name) {"); sb.append(java.lang.System.lineSeparator());
+        sb.append("      int x = 1;"); sb.append(java.lang.System.lineSeparator());
+        sb.append("   }"); sb.append(java.lang.System.lineSeparator());
+        sb.append("}"); sb.append(java.lang.System.lineSeparator());
+        return new StringReader(sb.toString());
     }
 
 }
